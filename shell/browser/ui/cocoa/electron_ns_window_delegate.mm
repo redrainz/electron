@@ -270,6 +270,15 @@ using TitleBarStyle = electron::NativeWindowMac::TitleBarStyle;
 - (void)windowWillClose:(NSNotification*)notification {
   shell_->NotifyWindowClosed();
 
+  if (shell_->is_modal() && shell_->parent() && shell_->IsVisible()) {
+    NSWindow* window = shell_->GetNativeWindow().GetNativeNSWindow();
+    NSWindow* sheetParent = [window sheetParent];
+    base::ThreadTaskRunnerHandle::Get()->PostTask(
+        FROM_HERE, base::BindOnce(base::RetainBlock(^{
+          [sheetParent endSheet:window];
+        })));
+  }
+
   // Clears the delegate when window is going to be closed, since EL Capitan it
   // is possible that the methods of delegate would get called after the window
   // has been closed.
